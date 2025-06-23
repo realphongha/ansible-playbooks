@@ -26,6 +26,11 @@ all:
 ```
 
 ## To run a playbook
+with inventory
 ```bash
 ansible-playbook -i inventory.yaml ./playbooks/{playbook_name}.yaml [--limit host_or_group]
+```
+or not
+```bash
+ansible-playbook -i {host_address} ./playbooks/{playbook_name}.yaml --limit {host_address}
 ```
