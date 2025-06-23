@@ -21,7 +21,7 @@
        force: "{{ git_force }}"
 
    - name: Debug commit info
-     ansible.builtin.command: git rev-parse HEAD
+     command: git rev-parse HEAD
      args:
        chdir: "{{ repo_dest }}"
      register: git_head

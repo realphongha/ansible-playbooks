@@ -1,0 +1,46 @@
+- name: Install latest Miniconda 
+  hosts: all
+  become: false  # regular user
+  vars:
+    installer_dir: "{{ ansible_env.HOME }}/tmp"
+    install_dir: "{{ ansible_env.HOME }}/miniconda3"
+    x86_64_url: "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"
+    aarch64_url: "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh"
+  tasks:
+   - name: Check if conda is already present
+     command: which conda
+     register: conda_path
+     failed_when: false
+     changed_when: false
+   
+   - name: Stop play if conda is already present
+     meta: end_play
+     when: conda_path.rc == 0
+     vars:
+        _message: "Skipping installation: conda already found at {{ conda_path.stdout }}"
+
+   - name: Set installer URL based on architecture
+     set_fact:
+       installer_url: "{{ aarch64_url if ansible_architecture == 'aarch64' else x86_64_url }}"
+
+   - name: Ensure target directory exists
+     file:
+       path: "{{ installer_dir }}"
+       state: directory
+
+   - name: Download installer
+     get_url:
+       url: "{{ installer_url }}"
+       dest: "{{ installer_dir }}/miniconda.sh"
+       mode: 0755
+
+   - name: Install Miniconda
+     command: "{{ installer_dir }}/miniconda.sh -b -p {{ install_dir }}"
+
+   - name: Initialize Miniconda
+     shell: "{{ install_dir }}/bin/conda init"
+
+   - name: Remove installer
+     file:
+       path: "{{ installer_dir }}/miniconda.sh"
+       state: absent
