@@ -1,0 +1,45 @@
+- name: Install latest nvim configs
+  hosts: all
+  become: false  # regular user
+  vars:
+    repo_url: "https://github.com/realphongha/nvim-configs.git"
+    repo_dest: "{{ ansible_env.HOME }}/.config/nvim"
+    repo_version: "master"
+    git_force: true  # reset local changes
+  tasks:
+   - name: Ensure target directory exists
+     file:
+       path: "{{ repo_dest }}"
+       state: directory
+
+   - name: Clone/update repo
+     git:
+       repo: "{{ repo_url }}"
+       dest: "{{ repo_dest }}"
+       version: "{{ repo_version }}"
+       update: yes
+       force: "{{ git_force }}"
+
+   - name: Debug commit info
+     ansible.builtin.command: git rev-parse HEAD
+     args:
+       chdir: "{{ repo_dest }}"
+     register: git_head
+
+   - name: Show current commit
+     debug:
+       msg: "Current commit: {{ git_head.stdout }}"
+
+   - name: Check if local config file exists
+     stat:
+       path: "{{ repo_dest }}/lua/my_configs.lua"
+     register: local_config_stat
+
+   - name: Create local config file if not exist
+     file:
+       path: "{{ repo_dest }}/lua/my_configs.lua"
+       state: touch
+       mode: 0600
+       access_time: preserve
+       modification_time: preserve
+     when: not local_config_stat.stat.exists
