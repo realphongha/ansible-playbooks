@@ -24,22 +24,22 @@
      when: nvm_stat.stat.exists
 
    - name: Install nvm script
-     ansible.builtin.shell: >
+     shell: >
        curl -o- {{ nvm_url }} | bash
 
    - name: Install Node.js and set default
-     ansible.builtin.shell: >
+     shell: >
        /bin/bash -lc "\. "$HOME/.nvm/nvm.sh" && nvm install --lts && nvm alias default lts/*"
      args:
        creates: "{{ ansible_env.HOME }}/.nvm/versions/node"
        executable: /bin/bash
 
    - name: Verify Node and npm versions
-     ansible.builtin.shell: >
+     shell: >
        /bin/bash -lc "\. "$HOME/.nvm/nvm.sh" && node -v && nvm current && npm -v"
      register: verify
      changed_when: false
 
    - name: Show installed versions
-     ansible.builtin.debug:
+     debug:
        msg: "Node version, NVM Node version, NPM version: {{ verify.stdout_lines }}"
