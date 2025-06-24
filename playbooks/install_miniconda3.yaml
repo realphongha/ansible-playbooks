@@ -16,8 +16,6 @@
    - name: Stop play if conda is already present
      meta: end_play
      when: conda_path.rc == 0
-     vars:
-        _message: "Skipping installation: conda already found at {{ conda_path.stdout }}"
 
    - name: Set installer URL based on architecture
      set_fact:

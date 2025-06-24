@@ -1,0 +1,45 @@
+- name: Install Nodejs without root
+  hosts: all
+  become: false
+  vars:
+    nvm_url: "https://raw.githubusercontent.com/nvm-sh/nvm/refs/heads/master/install.sh"
+  tasks:
+   - name: Check if node is already present
+     command: which node
+     register: node_path
+     failed_when: false
+     changed_when: false
+
+   - name: Stop play if node is already present
+     meta: end_play
+     when: node_path.rc == 0
+
+   - name: Check if nvm is already present
+     stat:
+        path: "{{ ansible_env.HOME }}/.nvm/nvm.sh"
+     register: nvm_stat
+   
+   - name: Stop play if nvm is already present
+     meta: end_play
+     when: nvm_stat.stat.exists
+
+   - name: Install nvm script
+     ansible.builtin.shell: >
+       curl -o- {{ nvm_url }} | bash
+
+   - name: Install Node.js and set default
+     ansible.builtin.shell: >
+       /bin/bash -lc "\. "$HOME/.nvm/nvm.sh" && nvm install --lts && nvm alias default lts/*"
+     args:
+       creates: "{{ ansible_env.HOME }}/.nvm/versions/node"
+       executable: /bin/bash
+
+   - name: Verify Node and npm versions
+     ansible.builtin.shell: >
+       /bin/bash -lc "\. "$HOME/.nvm/nvm.sh" && node -v && nvm current && npm -v"
+     register: verify
+     changed_when: false
+
+   - name: Show installed versions
+     ansible.builtin.debug:
+       msg: "Node version, NVM Node version, NPM version: {{ verify.stdout_lines }}"
