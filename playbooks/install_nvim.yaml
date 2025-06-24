@@ -3,12 +3,12 @@
   become: false  # regular user
   vars:
     install_dir: "{{ ansible_env.HOME }}/app"
-    nvim_url_aarch64: "https://github.com/neovim/neovim/releases/download/v0.11.2/nvim-linux-arm64.tar.gz"
-    nvim_url_x64: "https://github.com/neovim/neovim/releases/download/v0.11.2/nvim-linux-x86_64.tar.gz"
+    nvim_url_aarch64: "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-arm64.tar.gz"
+    nvim_url_x64: "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz"
     ripgrep_url_aarch64: "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-aarch64-unknown-linux-gnu.tar.gz"
     ripgrep_url_x64: "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-x86_64-unknown-linux-musl.tar.gz"
-    yazi_url_aarch64: "https://github.com/sxyazi/yazi/releases/download/v25.5.31/yazi-aarch64-unknown-linux-musl.zip"
-    yazi_url_x64: "https://github.com/sxyazi/yazi/releases/download/v25.5.31/yazi-x86_64-unknown-linux-musl.zip"
+    yazi_url_aarch64: "https://github.com/sxyazi/yazi/releases/latest/download/yazi-aarch64-unknown-linux-musl.zip"
+    yazi_url_x64: "https://github.com/sxyazi/yazi/releases/latest/download/yazi-x86_64-unknown-linux-musl.zip"
     magick_url: "https://imagemagick.org/archive/binaries/magick"
     profile: "{{ ansible_env.HOME }}/.bashrc"
   tasks:
