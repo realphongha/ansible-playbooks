@@ -1,0 +1,200 @@
+- name: Install nvim and dependencies
+  hosts: all
+  become: false  # regular user
+  vars:
+    install_dir: "{{ ansible_env.HOME }}/app"
+    nvim_url_aarch64: "https://github.com/neovim/neovim/releases/download/v0.11.2/nvim-linux-arm64.tar.gz"
+    nvim_url_x64: "https://github.com/neovim/neovim/releases/download/v0.11.2/nvim-linux-x86_64.tar.gz"
+    ripgrep_url_aarch64: "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-aarch64-unknown-linux-gnu.tar.gz"
+    ripgrep_url_x64: "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-x86_64-unknown-linux-musl.tar.gz"
+    yazi_url_aarch64: "https://github.com/sxyazi/yazi/releases/download/v25.5.31/yazi-aarch64-unknown-linux-musl.zip"
+    yazi_url_x64: "https://github.com/sxyazi/yazi/releases/download/v25.5.31/yazi-x86_64-unknown-linux-musl.zip"
+    magick_url: "https://imagemagick.org/archive/binaries/magick"
+    profile: "{{ ansible_env.HOME }}/.bashrc"
+  tasks:
+   - name: Ensure target directory exists
+     file:
+       path: "{{ install_dir }}"
+       state: directory
+
+   - name: Set installer URL based on architecture
+     set_fact:
+       nvim_url: "{{ nvim_url_aarch64 if ansible_architecture == 'aarch64' else nvim_url_x64 }}"
+       ripgrep_url: "{{ ripgrep_url_aarch64 if ansible_architecture == 'aarch64' else ripgrep_url_x64 }}"
+       yazi_url: "{{ yazi_url_aarch64 if ansible_architecture == 'aarch64' else yazi_url_x64 }}"
+
+   - name: Check if nvim is already present 
+     command: which nvim
+     register: nvim_path
+     failed_when: false
+     changed_when: false
+
+   - name: Download nvim
+     get_url:
+       url: "{{ nvim_url }}"
+       dest: "{{ install_dir }}/nvim.tar.gz"
+     when: nvim_path.rc != 0
+
+   - name: Extract nvim
+     unarchive:
+       src: "{{ install_dir }}/nvim.tar.gz"
+       dest: "{{ install_dir }}"
+       remote_src: true
+     when: nvim_path.rc != 0
+
+   - name: Find existing nvim-* directory
+     shell: >
+       ls -d {{ install_dir }}/nvim-* 2>/dev/null | head -n1
+     register: nvim_dir
+     changed_when: false
+     failed_when: false
+     when: nvim_path.rc != 0
+
+   - name: Rename nvim directory
+     command: mv {{ nvim_dir.stdout }} {{ install_dir }}/nvim
+     when: nvim_path.rc != 0
+
+   - name: Remove nvim tarball
+     file:
+       path: "{{ install_dir }}/nvim.tar.gz"
+       state: absent
+     when: nvim_path.rc != 0
+
+   - name: Add nvim to PATH
+     lineinfile:
+       path: "{{ profile }}"
+       line: 'export PATH="{{ install_dir }}/nvim/bin:$PATH"'
+       create: yes
+
+   - name: Check if ripgrep is already present 
+     command: which rg
+     register: rg_path
+     failed_when: false
+     changed_when: false
+
+   - name: Download ripgrep
+     get_url:
+       url: "{{ ripgrep_url }}"
+       dest: "{{ install_dir }}/ripgrep.tar.gz"
+     when: rg_path.rc != 0
+
+   - name: Extract ripgrep
+     unarchive:
+       src: "{{ install_dir }}/ripgrep.tar.gz"
+       dest: "{{ install_dir }}"
+       remote_src: true
+     when: rg_path.rc != 0
+
+   - name: Find existing ripgrep-* directory
+     shell: >
+       ls -d {{ install_dir }}/ripgrep-* 2>/dev/null | head -n1
+     register: rg_dir
+     changed_when: false
+     failed_when: false
+     when: rg_path.rc != 0
+
+   - name: Rename ripgrep directory
+     command: mv {{ rg_dir.stdout }} {{ install_dir }}/ripgrep
+     when: rg_path.rc != 0
+
+   - name: Remove ripgrep tarball
+     file:
+       path: "{{ install_dir }}/ripgrep.tar.gz"
+       state: absent
+     when: rg_path.rc != 0
+
+   - name: Add ripgrep to PATH
+     lineinfile:
+       path: "{{ profile }}"
+       line: 'export PATH="{{ install_dir }}/ripgrep:$PATH"'
+       create: yes
+
+   - name: Check if magick is already present 
+     command: which magick
+     register: magick_path
+     failed_when: false
+     changed_when: false
+
+   - name: Download magick
+     get_url:
+       url: "{{ magick_url }}"
+       dest: "{{ install_dir }}/magick"
+     when: magick_path.rc != 0 and ansible_architecture == 'x86_64'
+
+   - name: Add magick to PATH
+     lineinfile:
+       path: "{{ profile }}"
+       line: 'export PATH="{{ install_dir }}:$PATH"'
+       create: yes
+     when: ansible_architecture == 'x86_64'
+
+   - name: Check if yazi is already present 
+     command: which yazi
+     register: yazi_path
+     failed_when: false
+     changed_when: false
+
+   - name: Download yazi
+     get_url:
+       url: "{{ yazi_url }}"
+       dest: "{{ install_dir }}/yazi.zip"
+     when: yazi_path.rc != 0
+
+   - name: Extract yazi
+     unarchive:
+       src: "{{ install_dir }}/yazi.zip"
+       dest: "{{ install_dir }}"
+       remote_src: true
+     when: yazi_path.rc != 0
+
+   - name: Find existing yazi-* directory
+     shell: >
+       ls -d {{ install_dir }}/yazi-* 2>/dev/null | head -n1
+     register: yazi_dir
+     changed_when: false
+     failed_when: false
+     when: yazi_path.rc != 0
+
+   - name: Rename yazi directory
+     command: mv {{ yazi_dir.stdout }} {{ install_dir }}/yazi
+     when: yazi_path.rc != 0
+
+   - name: Remove yazi zip
+     file:
+       path: "{{ install_dir }}/yazi.zip"
+       state: absent
+     when: yazi_path.rc != 0
+
+   - name: Add yazi to PATH
+     lineinfile:
+       path: "{{ profile }}"
+       line: 'export PATH="{{ install_dir }}/yazi:$PATH"'
+       create: yes
+
+   - name: Alias nvim as vi
+     lineinfile:
+       path: "{{ profile }}"
+       regex: '^alias vi='
+       line: 'alias vi="nvim"'
+       create: yes
+
+   - name: Set VISUAL and EDITOR to nvim
+     blockinfile:
+       path: "{{ profile }}"
+       create: yes
+       block: |
+         export VISUAL="nvim"
+         export EDITOR="$VISUAL"
+
+   - name: Configure Git to use nvim -f as editor
+     community.general.git_config:
+       scope: global
+       name: core.editor
+       value: "nvim -f"
+
+   - name: Ensure GIT_EDITOR environment variable is set
+     lineinfile:
+       path: "{{ profile }}"
+       regex: '^export GIT_EDITOR='
+       line: 'export GIT_EDITOR="nvim -f"'
+       create: yes
