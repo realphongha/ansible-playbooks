@@ -1,0 +1,19 @@
+- name: Install latest tmux configs
+  hosts: all
+  become: false  # regular user
+  vars:
+    cfg_url: "https://raw.githubusercontent.com/realphongha/dotfiles/refs/heads/master/.tmux.conf"
+    cfg_dest: "{{ ansible_env.HOME }}/.tmux.conf"
+  tasks:
+   - name: Ensure target file exists
+     file:
+       path: "{{ cfg_dest }}"
+       state: touch
+
+   - name: Download tmux configs
+     uri:
+       url: "{{ cfg_url }}"
+       dest: "{{ cfg_dest }}"
+       mode: 0644
+
+    

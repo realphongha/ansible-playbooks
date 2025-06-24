@@ -27,5 +27,5 @@ all:
 
 ## To run a playbook
 ```bash
-ansible-playbook -i inventory.yaml ./playbooks/{playbook_name}.yaml [--limit host_or_group]
+ansible-playbook -i inventory.yaml ./playbooks/{playbook_name}.yaml [--limit host_or_group] [{--ask-become-pass|-K}]
 ```
