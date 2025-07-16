@@ -1,0 +1,23 @@
+- import_playbook: install_node_without_root.yaml
+- name: Install Gemini CLI
+  hosts: all
+  become: false
+  tasks:
+   - name: Check if Gemini CLI is already present
+     command: which gemini
+     register: gemini_path
+     failed_when: false
+     changed_when: false
+
+   - name: Stop play if Gemini CLi is already present
+     meta: end_play
+     when: gemini_path.rc == 0
+
+   - name: Install Gemini CLI via npm
+     shell: >
+       /bin/bash -lc "\. "$HOME/.nvm/nvm.sh" && npm install -g @google/gemini-cli && gemini -v"
+     register: install
+
+   - name: Show installed info
+     debug:
+       msg: "Gemini CLI installed: {{ install.stdout_lines }}"
