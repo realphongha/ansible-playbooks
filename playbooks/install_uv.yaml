@@ -1,0 +1,40 @@
+- name: Install latest uv 
+  hosts: all
+  become: false  # regular user
+  vars:
+    curl_url: "curl -LsSf https://astral.sh/uv/install.sh | sh"
+    wget_url: "wget -qO- https://astral.sh/uv/install.sh | sh"
+  tasks:
+   - name: Check if uv is already present
+     command: which uv
+     register: uv_path
+     failed_when: false
+     changed_when: false
+   
+   - name: Stop play if uv is already present
+     meta: end_play
+     when: uv_path.rc == 0
+
+   - name: Check if curl is already present
+     command: which curl
+     register: curl_path
+     failed_when: false
+     changed_when: false
+
+   - name: Check if wget is already present
+     command: which wget
+     register: wget_path
+     failed_when: false
+     changed_when: false
+
+   - name: Stop play if both curl and wget are not present 
+     meta: end_play
+     when: curl_path.rc != 0 and wget_path.rc != 0
+
+   - name: Set installer URL based on which is present
+     set_fact:
+       installer_url: "{{ curl_url if curl_path.rc == 0 else wget_url }}"
+
+   - name: Install uv
+     shell: >
+       {{ installer_url }}
