@@ -1,0 +1,63 @@
+- name: Install nvim and dependencies
+  hosts: all
+  become: false  # regular user
+  vars:
+    image_name: temp_tmux_image
+    container_name: temp_tmux_container
+    build_tmux_script: build_tmux.sh 
+    dockerfile: tmux.Dockerfile
+    remote_workdir: "{{ ansible_env.HOME }}/app"
+    output_path: "{{ ansible_env.HOME }}/app"
+    tmux_binary_path: /tmp/tmux/tmux
+    profile: "{{ ansible_env.HOME }}/.bashrc"
+
+  tasks:
+    - name: Check if tmux binary already exists
+      stat:
+        path: "{{ output_path }}/tmux"
+      register: tmux_binary_stat
+
+    - name: End play if tmux binary exists
+      meta: end_play
+      when: tmux_binary_stat.stat.exists
+
+    - name: Ensure working directory exists on remote
+      file:
+        path: "{{ remote_workdir }}"
+        state: directory
+
+    - name: Copy Dockerfile to remote
+      copy:
+        src: "{{ dockerfile }}"
+        dest: "{{ remote_workdir }}/{{ dockerfile }}"
+
+    - name: Copy scripts to remote
+      copy:
+        src: "{{ build_tmux_script }}"
+        dest: "{{ remote_workdir }}/{{ build_tmux_script }}"
+
+    - name: Make build script executable
+      ansible.builtin.file:
+        path: "{{ remote_workdir }}/{{ build_tmux_script }}"
+        mode: 'a+x'
+
+    - name: Build tmux using script
+      ansible.builtin.shell:
+        cmd: "./{{ build_tmux_script }}"
+        chdir: "{{ remote_workdir }}"
+
+    - name: Add tmux to PATH
+      lineinfile:
+        path: "{{ profile }}"
+        line: 'export PATH="{{ output_path }}:$PATH"'
+        create: yes
+
+    - name: Remove build script from remote
+      ansible.builtin.file:
+        path: "{{ remote_workdir }}/{{ build_tmux_script }}"
+        state: absent
+
+    - name: Remove Dockerfile from remote
+      ansible.builtin.file:
+        path: "{{ remote_workdir }}/{{ dockerfile }}"
+        state: absent
