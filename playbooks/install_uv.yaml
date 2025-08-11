@@ -4,6 +4,7 @@
   vars:
     curl_url: "curl -LsSf https://astral.sh/uv/install.sh | sh"
     wget_url: "wget -qO- https://astral.sh/uv/install.sh | sh"
+    profile: "{{ ansible_env.HOME }}/.bashrc"
   tasks:
    - name: Check if uv is already present
      command: which uv
@@ -38,3 +39,10 @@
    - name: Install uv
      shell: >
        {{ installer_url }}
+
+   - name: Add alias for quick venv activation
+     lineinfile:
+       path: "{{ profile }}"
+       line: 'alias activate="source .venv/bin/activate"'
+       create: yes
+
