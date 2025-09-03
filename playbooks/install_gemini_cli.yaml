@@ -9,7 +9,7 @@
      failed_when: false
      changed_when: false
 
-   - name: Stop play if Gemini CLi is already present
+   - name: Stop play if Gemini CLI is already present
      meta: end_play
      when: gemini_path.rc == 0
 

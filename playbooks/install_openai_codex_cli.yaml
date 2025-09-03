@@ -1,0 +1,36 @@
+- import_playbook: install_node_without_root.yaml
+- name: Install OpenAI Codex CLI
+  hosts: all
+  become: false
+  vars:
+    cfg_url: "https://raw.githubusercontent.com/realphongha/dotfiles/refs/heads/master/.codex/config.toml"
+    cfg_dir: "{{ ansible_env.HOME }}/.codex"
+  tasks:
+   - name: Check if Codex CLI is already present
+     command: which codex
+     register: codex_path
+     failed_when: false
+     changed_when: false
+
+   - name: Install Codex CLI via npm
+     shell: >
+       /bin/bash -lc "\. "$HOME/.nvm/nvm.sh" && npm install -g @openai/codex && codex -V"
+     register: install
+     when: codex_path.rc != 0
+   
+   - name: Ensure target directory exists
+     file:
+       path: "{{ cfg_dir }}"
+       state: directory
+
+   - name: Ensure target file exists
+     file:
+       path: "{{ cfg_dir }}/config.toml"
+       state: touch
+
+   - name: Download Codex CLI configs
+     uri:
+       url: "{{ cfg_url }}"
+       dest: "{{ cfg_dir }}/config.toml"
+       mode: 0644
+       use_netrc: false
