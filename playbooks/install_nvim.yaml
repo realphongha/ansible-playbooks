@@ -23,42 +23,78 @@
        ripgrep_url: "{{ ripgrep_url_aarch64 if ansible_architecture == 'aarch64' else ripgrep_url_x64 }}"
        yazi_url: "{{ yazi_url_aarch64 if ansible_architecture == 'aarch64' else yazi_url_x64 }}"
 
-   - name: Check if nvim is already present 
+   # --- Neovim version check / upgrade logic ---
+   - name: Check if nvim is already present
      command: which nvim
      register: nvim_path
      failed_when: false
      changed_when: false
 
+   - name: Get installed nvim version (if present)
+     shell: nvim --version | head -n1
+     register: nvim_version_line
+     changed_when: false
+     failed_when: false
+     when: nvim_path.rc == 0
+
+   - name: Parse installed nvim version
+     set_fact:
+       nvim_installed_version: "{{ (nvim_version_line.stdout | default('') | regex_replace('^NVIM v?', '') | regex_replace('[^0-9.].*$', '')) | default('0.0.0') }}"
+     when: nvim_path.rc == 0
+
+   - name: Get latest Neovim release info
+     uri:
+       url: https://api.github.com/repos/neovim/neovim/releases/latest
+       headers:
+         Accept: application/vnd.github+json
+       return_content: yes
+     register: nvim_latest
+     changed_when: false
+
+   - name: Parse latest Neovim version
+     set_fact:
+       nvim_latest_version: "{{ (nvim_latest.json.tag_name | default('v0.0.0')) | regex_replace('^v', '') }}"
+
+   - name: Decide if Neovim install/upgrade is needed
+     set_fact:
+       nvim_update_needed: "{{ (nvim_path.rc != 0) or ((nvim_installed_version | default('0.0.0')) is version(nvim_latest_version, '<')) }}"
+
    - name: Download nvim
      get_url:
        url: "{{ nvim_url }}"
        dest: "{{ install_dir }}/nvim.tar.gz"
-     when: nvim_path.rc != 0
+     when: nvim_update_needed
 
    - name: Extract nvim
      unarchive:
        src: "{{ install_dir }}/nvim.tar.gz"
        dest: "{{ install_dir }}"
        remote_src: true
-     when: nvim_path.rc != 0
+     when: nvim_update_needed
 
-   - name: Find existing nvim-* directory
+   - name: Find extracted nvim-* directory
      shell: >
        ls -d {{ install_dir }}/nvim-* 2>/dev/null | head -n1
      register: nvim_dir
      changed_when: false
      failed_when: false
-     when: nvim_path.rc != 0
+     when: nvim_update_needed
+
+   - name: Remove existing nvim directory before upgrade (if any)
+     file:
+       path: "{{ install_dir }}/nvim"
+       state: absent
+     when: nvim_update_needed
 
    - name: Rename nvim directory
      command: mv {{ nvim_dir.stdout }} {{ install_dir }}/nvim
-     when: nvim_path.rc != 0
+     when: nvim_update_needed
 
    - name: Remove nvim tarball
      file:
        path: "{{ install_dir }}/nvim.tar.gz"
        state: absent
-     when: nvim_path.rc != 0
+     when: nvim_update_needed
 
    - name: Add nvim to PATH
      lineinfile:
@@ -119,6 +155,12 @@
      get_url:
        url: "{{ magick_url }}"
        dest: "{{ install_dir }}/magick"
+     when: magick_path.rc != 0 and ansible_architecture == 'x86_64'
+
+   - name: Ensure magick is executable
+     file:
+       path: "{{ install_dir }}/magick"
+       mode: '0755'
      when: magick_path.rc != 0 and ansible_architecture == 'x86_64'
 
    - name: Add magick to PATH
@@ -198,3 +240,4 @@
        regex: '^export GIT_EDITOR='
        line: 'export GIT_EDITOR="nvim -f"'
        create: yes
+
