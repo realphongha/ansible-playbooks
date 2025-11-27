@@ -1,0 +1,31 @@
+- name: Configure aliases
+  hosts: all
+  become: false  # regular user
+  vars:
+    profile: "{{ ansible_env.HOME }}/.bashrc"
+  tasks:
+   - name: Inject aliases into profile 
+     blockinfile:
+       path: "{{ profile }}"
+       marker: "# {mark} ANSIBLE MANAGED ALIASES (DO NOT EDIT MANUALLY)"
+       block: |
+         # --- sudo repeat last command ---
+         alias please='sudo $(fc -ln -1)'
+         alias pls='sudo $(fc -ln -1)'
+
+         # --- du ---
+         alias du1='du -h -d1'
+
+         # --- rsync instead of scp ---
+         alias rscp='rsync -ahvzP'
+
+         # --- network ---
+         alias myip='curl ifconfig.me'
+         {% if ansible_system == 'Darwin' %}
+         alias ports='lsof -i -P -n | grep LISTEN'
+         alias sports='sudo lsof -i -P -n | grep LISTEN'
+         {% else %}
+         alias ports='ss -tulpn | grep LISTEN'
+         alias sports='sudo ss -tulpn | grep LISTEN'
+         {% endif %}
+
