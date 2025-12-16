@@ -4,6 +4,7 @@
   vars:
     cfg_url: "https://raw.githubusercontent.com/realphongha/dotfiles/refs/heads/master/.tmux.conf"
     cfg_dest: "{{ ansible_env.HOME }}/.tmux.conf"
+    tpm_path: "{{ ansible_env.HOME }}/.tmux/plugins/tpm"
   tasks:
    - name: Ensure target file exists
      file:
@@ -16,4 +17,19 @@
        dest: "{{ cfg_dest }}"
        mode: 0644
 
-    
+   - name: Ensure TPM plugins directory exists
+     file:
+       path: "{{ ansible_env.HOME }}/.tmux/plugins"
+       state: directory
+
+   - name: Check if TPM exists
+     stat:
+       path: "{{ tpm_path }}"
+     register: tpm_stat
+
+   - name: Install TPM
+     git:
+       repo: "https://github.com/tmux-plugins/tpm"
+       dest: "{{ tpm_path }}"
+       update: no
+     when: not tpm_stat.stat.exists
