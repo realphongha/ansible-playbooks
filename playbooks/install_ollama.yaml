@@ -1,0 +1,49 @@
+- name: Install ollama
+  hosts: all
+  become: false  # regular user
+  vars:
+    install_dir: "{{ ansible_env.HOME }}/app/ollama"
+    ollama_url_aarch64: "https://github.com/ollama/ollama/releases/download/v0.13.3/ollama-linux-arm64.tgz"
+    ollama_url_x64: "https://github.com/ollama/ollama/releases/download/v0.13.3/ollama-linux-amd64.tgz"
+    profile: "{{ ansible_env.HOME }}/.bashrc"
+  tasks:
+   - name: Ensure target directory exists
+     file:
+       path: "{{ install_dir }}"
+       state: directory
+
+   - name: Set installer URL based on architecture
+     set_fact:
+       ollama_url: "{{ ollama_url_aarch64 if ansible_architecture == 'aarch64' else ollama_url_x64 }}"
+
+   - name: Check if ollama is already present
+     command: which ollama
+     register: ollama_path
+     failed_when: false
+     changed_when: false
+
+   - name: Download ollama
+     get_url:
+       url: "{{ ollama_url }}"
+       dest: "{{ install_dir }}/ollama.tgz"
+     when: ollama_path.rc != 0
+
+   - name: Extract ollama
+     unarchive:
+       src: "{{ install_dir }}/ollama.tgz"
+       dest: "{{ install_dir }}"
+       remote_src: true
+     when: ollama_path.rc != 0
+
+   - name: Remove ollama tarball
+     file:
+       path: "{{ install_dir }}/ollama.tgz"
+       state: absent
+     when: ollama_path.rc != 0
+
+   - name: Add ollama to PATH
+     lineinfile:
+       path: "{{ profile }}"
+       line: 'export PATH="{{ install_dir }}/bin:$PATH"'
+       create: yes
+
